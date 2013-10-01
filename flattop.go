@@ -84,7 +84,6 @@ func main() {
 					log.Fatal("you must provide a name for app")
 				}
 
-				exit(c.Args()[1:])
 				appname := c.Args()[0]
 
 				containerConf := new(Config)
