@@ -19,16 +19,16 @@ type Config struct {
 func (c *Config) writeToFile(filename string) {
 	b, err := json.Marshal(*c)
 	if err != nil {
-		log.Fatalln("unable to Marshal Config:", err)
+		exit("unable to Marshal Config:", err)
 	}
 	prettyb, err := Pretty(b)
 	if err != nil {
-		log.Fatalln("unable to Indent:", err)
+		exit("unable to Indent:", err)
 	}
 
 	err = ioutil.WriteFile(filename, prettyb, 0644)
 	if err != nil {
-		log.Fatalln("failed to write config to:"+filename, err)
+		exit("failed to write config to:"+filename, err)
 	}
 
 }
@@ -56,13 +56,13 @@ func (c *Config) LoadConfigFiles() error {
 
 	usr, err := user.Current()
 	if err != nil {
-		log.Fatalln(err)
+		exit(err)
 	}
 
 	configFolder := filepath.Join(usr.HomeDir, ".dockercmd")
 	err = filepath.Walk(configFolder, visit)
 	if err != nil {
-		log.Fatalln("failed to load config files")
+		exit("failed to load config files")
 	}
 	return nil
 

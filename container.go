@@ -10,16 +10,20 @@ import (
 )
 
 type Container struct {
-	Hostname    string
-	Domainname  string
-	Memory      int
-	Privileged  bool
-	Image       string
-	Detach      bool
-	VolumesFrom string
-	Volumes     []string
-	Dns         []string
-	Port        []int
+	Id               string
+	Hostname         string
+	DomainName       string
+	WorkingDirectory string
+	Entrypoint       string
+	Cpu              string
+	Image            string
+	VolumesFrom      string
+	Volumes          []string
+	Dns              []string
+	Environment      []string
+	Port             []int
+	Memory           int
+	Privileged       bool
 }
 
 func (c *Container) ValidateContainer() error {
@@ -57,29 +61,21 @@ func (c *Container) buildDockerCmd() string {
 
 	var cmd cmd
 
-	cmd.add("docker", "run")
+	cmd.add("docker", "run", "-d")
 
 	if c.Memory != 0 {
 		cmd.add("-m", string(c.Memory))
 
 	}
 
-	if c.Detach {
-		cmd.add("-d")
-
-	}
-
 	if c.Privileged {
-
 		cmd.add("-privileged")
 
 	}
 
 	if len(c.Port) > 0 {
 		for _, port := range c.Port {
-
 			cmd.add("-p", strconv.Itoa(port))
-
 		}
 	}
 
