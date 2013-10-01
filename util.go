@@ -46,6 +46,14 @@ func (cmd *cmd) String() string {
 	return strings.Join(*cmd, " ")
 }
 
+func fileExists(filename string) bool {
+	if _, err := os.Stat(filename); os.IsNotExist(err) {
+		return false
+	} else {
+		return true
+	}
+}
+
 // Pretty-prints the given byte slice with indention of two spaces
 func Pretty(src []byte) ([]byte, error) {
 	return PrettyIndent(src, "  ")

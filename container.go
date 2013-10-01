@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	"log"
 	"net"
 	"os/exec"
 	"regexp"
@@ -18,6 +17,7 @@ type Container struct {
 	Cpu              string
 	Image            string
 	VolumesFrom      string
+	User             string
 	Volumes          []string
 	Dns              []string
 	Environment      []string
@@ -99,14 +99,18 @@ func (c *Container) buildDockerCmd() string {
 
 }
 
-func (c *Container) Run() (imageId string, err error) {
+func (c *Container) Run() (containerId string) {
 
 	out, err := exec.Command("/bin/sh", "-c", c.buildDockerCmd()).Output()
 	if err != nil {
-		log.Fatal(err)
+		exit("failed to run ", c.buildDockerCmd(), err)
 	}
 
-	re := regexp.MustCompile("[0-9a-fA-F]{12}")
-
-	return re.FindString(string(out)), nil
+	var re *regexp.Regexp
+	re = regexp.MustCompile("[0-9a-fA-F]{12}")
+	containerId = re.FindString(string(out))
+	if containerId == "" {
+		exit("failed with error ", string(out))
+	}
+	return containerId
 }

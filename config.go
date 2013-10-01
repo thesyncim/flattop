@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
-	"log"
 	"os"
 	"os/user"
 	"path/filepath"
@@ -17,10 +16,12 @@ type Config struct {
 }
 
 func (c *Config) writeToFile(filename string) {
+
 	b, err := json.Marshal(*c)
 	if err != nil {
 		exit("unable to Marshal Config:", err)
 	}
+
 	prettyb, err := Pretty(b)
 	if err != nil {
 		exit("unable to Indent:", err)
@@ -34,10 +35,7 @@ func (c *Config) writeToFile(filename string) {
 }
 
 func (c *Config) Save(filename string, repalce bool) {
-	if _, err := os.Stat(filename); os.IsNotExist(err) {
-		c.writeToFile(filename)
-		info("new configFile " + filename + " saved")
-	} else {
+	if fileExists(filename) {
 		if repalce {
 			var confirm string
 			fmt.Println("are you sure ?:yes|no")
@@ -47,8 +45,33 @@ func (c *Config) Save(filename string, repalce bool) {
 				info("configFile " + filename + " replaced")
 			}
 		} else {
-			log.Fatal("already exists use -r to replace")
+			exit("already exists use -r to replace")
 		}
+
+	} else {
+		c.writeToFile(filename)
+		info("new configFile " + filename + " saved")
+
+	}
+
+}
+
+func (c *Config) LoadConfigFile(filename string) {
+
+	if fileExists(filename) {
+
+		b, err := ioutil.ReadFile(filename)
+		if err != nil {
+			exit("failed to read " + filename)
+		}
+
+		err = json.Unmarshal(b, c)
+		if err != nil {
+			exit("error to Unmarshal", err)
+		}
+
+	} else {
+		exit("Error: missing configuration for " + filename)
 	}
 }
 

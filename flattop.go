@@ -31,7 +31,7 @@ func main() {
 				cli.StringFlag{"host", "", "Container host name"},
 				cli.StringFlag{"u", "", " Username or UID"},
 				cli.StringFlag{"w", "", "Working directory inside the container"},
-				cli.StringFlag{"-c", "0", "CPU shares (relative weight)"},
+				cli.StringFlag{"c", "0", "CPU shares (relative weight)"},
 				cli.StringFlag{"image", "", "Image to run"},
 				cli.StringFlag{"publicip", "", "Container public static ip"},
 				cli.StringFlag{"privateip", "", "Container private static ip"},
@@ -49,6 +49,10 @@ func main() {
 				containerConf.Hostname = c.String("host")
 				containerConf.Dns = c.StringSlice("dns")
 				containerConf.Image = c.String("image")
+				containerConf.Cpu = c.String("c")
+				containerConf.Environment = c.StringSlice("e")
+				containerConf.User = c.String("u")
+				containerConf.WorkingDirectory = c.String("w")
 				containerConf.Port = c.IntSlice("p")
 				containerConf.Volumes = c.StringSlice("v")
 				containerConf.PrivateIp = c.String("privateip")
@@ -64,7 +68,6 @@ func main() {
 				}
 
 				containerConf.Save(c.GlobalString("c")+appname, c.Bool("r"))
-				info("Configuration for container " + appname + "saved")
 
 			},
 		},
@@ -75,8 +78,19 @@ func main() {
 			Flags:     []cli.Flag{},
 			Action: func(c *cli.Context) {
 
-				if c.Args()[0] == "" {
+				if len(c.Args()) < 1 {
 					log.Fatal("you must provide a name for app")
+				}
+				appname := c.Args()[0]
+
+				containerConf := new(Config)
+				containerConf.LoadConfigFile(configDir + appname)
+				if err := containerConf.ValidateContainer(); err != nil {
+					exit(err)
+				}
+
+				if err := containerConf.ValidateNetwork(); err != nil {
+					exit(err)
 				}
 
 			},
