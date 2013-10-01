@@ -13,8 +13,8 @@ type Network struct {
 	PrivateIp string
 }
 
-func (n *Network) resetPublicIp(ip string) {
-	_, err := exec.Command("ip", "route", "flush", ip).Output()
+func (n *Network) resetPublicIp() {
+	_, err := exec.Command("ip", "route", "flush", n.PublicIp).Output()
 	if err != nil {
 		exit("failed to flush public ip config", err)
 	}
@@ -95,6 +95,7 @@ func (n *Network) SetPrivateIp(containerId string) error {
 func (n *Network) setPublicIp(containerId string) error {
 
 	if n.PublicIp != "" {
+		n.resetPublicIp()
 		_, err := exec.Command("ip", "route", "add", "to", n.PublicIp, "via", n.PrivateIp).Output()
 		if err != nil {
 			exit("failed to set public ip config", err)
