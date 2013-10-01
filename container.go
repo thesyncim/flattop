@@ -18,6 +18,7 @@ type Container struct {
 	Image            string
 	VolumesFrom      string
 	User             string
+	Command          string
 	Volumes          []string
 	Dns              []string
 	Environment      []string
@@ -93,7 +94,7 @@ func (c *Container) buildDockerCmd() string {
 		}
 	}
 
-	cmd.add(c.Image)
+	cmd.add(c.Image, c.Command)
 
 	return cmd.String()
 

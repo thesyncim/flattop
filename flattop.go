@@ -41,8 +41,8 @@ func main() {
 			},
 			Action: func(c *cli.Context) {
 
-				if len(c.Args()) < 1 {
-					exit("you must provide a app name")
+				if len(c.Args()) < 2 {
+					exit("you must provide a app name and command to run")
 				}
 				appname := c.Args()[0]
 				containerConf := new(Config)
@@ -58,6 +58,7 @@ func main() {
 				containerConf.PrivateIp = c.String("privateip")
 				containerConf.PublicIp = c.String("publicip")
 				containerConf.Name = appname
+				containerConf.Command = c.Args()[1:]
 
 				if err := containerConf.ValidateContainer(); err != nil {
 					exit(err)
@@ -81,6 +82,8 @@ func main() {
 				if len(c.Args()) < 1 {
 					log.Fatal("you must provide a name for app")
 				}
+
+				exit(c.Args()[1:])
 				appname := c.Args()[0]
 
 				containerConf := new(Config)
