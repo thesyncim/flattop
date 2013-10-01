@@ -84,6 +84,7 @@ func main() {
 				appname := c.Args()[0]
 
 				containerConf := new(Config)
+
 				containerConf.LoadConfigFile(configDir + appname)
 				if err := containerConf.ValidateContainer(); err != nil {
 					exit(err)
@@ -92,6 +93,11 @@ func main() {
 				if err := containerConf.ValidateNetwork(); err != nil {
 					exit(err)
 				}
+
+				containerId := containerConf.Run()
+
+				containerConf.SetPrivateIp(containerId)
+				containerConf.setPublicIp(containerId)
 
 			},
 		},
