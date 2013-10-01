@@ -101,6 +101,8 @@ func main() {
 
 				containerConf.SetPrivateIp(containerId)
 				containerConf.setPublicIp(containerId)
+				containerConf.WriteToFile(c.GlobalString("c") + appname)
+				info("container ", c.Name, "started with id:", containerId)
 
 			},
 		},

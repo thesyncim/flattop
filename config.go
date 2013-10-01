@@ -17,7 +17,7 @@ type Config struct {
 	Container
 }
 
-func (c *Config) writeToFile(filename string) {
+func (c *Config) WriteToFile(filename string) {
 
 	b, err := json.Marshal(*c)
 	if err != nil {
@@ -71,6 +71,8 @@ func (c *Config) Run() (containerId string) {
 	if containerId == "" {
 		exit("failed with error ", string(out))
 	}
+	c.Id = containerId
+
 	return containerId
 }
 

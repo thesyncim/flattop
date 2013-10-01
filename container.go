@@ -95,10 +95,10 @@ func (c *Container) buildDockerCmd(ip string) string {
 
 	cmd.add(c.Image)
 	if ip != "" {
-		cmd.add("/bin/sh -c", "'", "ip addr add dev eth0", ip+"/32", "&&")
+		cmd.add("/bin/sh -c", "'", "ip addr add dev eth0", ip+"/32", "&&", c.Command, "'")
+	} else {
+		cmd.add(c.Command)
 	}
-
-	cmd.add(c.Command, "'")
 
 	return cmd.String()
 
