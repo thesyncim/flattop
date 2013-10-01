@@ -6,6 +6,7 @@ import (
 	"github.com/codegangsta/cli"
 	"log"
 	"os"
+	"strings"
 )
 
 var configDir = "/dockerimages/"
@@ -58,7 +59,7 @@ func main() {
 				containerConf.PrivateIp = c.String("privateip")
 				containerConf.PublicIp = c.String("publicip")
 				containerConf.Name = appname
-				containerConf.Command = c.Args()[1:]
+				containerConf.Command = strings.Join(c.Args()[1:], " ")
 
 				if err := containerConf.ValidateContainer(); err != nil {
 					exit(err)
