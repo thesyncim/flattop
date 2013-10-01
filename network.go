@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	"net"
 	"os/exec"
 	"strings"
 	"time"
@@ -13,14 +12,28 @@ type Network struct {
 	PrivateIp string
 }
 
-func (n *Network) resetPublicIp() {
-	_, err := exec.Command("ip", "route", "flush", n.PublicIp).Output()
+func (n *Network) AllocateNetwork(cid string) (err error) {
+	n.setPrivateIp(cid)
 	if err != nil {
-		exit("failed to flush public ip config", err)
+		return err
 	}
-
+	n.setPublicIp(cid)
+	if err != nil {
+		return err
+	}
+	return nil
 }
-func (n *Network) SetPrivateIp(containerId string) error {
+
+func (n *Network) resetPublicIp() (err error) {
+	_, err = exec.Command("ip", "route", "flush", n.PublicIp).Output()
+	if err != nil {
+		return fmt.Errorf("failed to reset Public ip : %v", err)
+	}
+	return nil
+}
+func (n *Network) setPrivateIp(containerId string) error {
+
+	//todo replace exit by fmt.Errorf
 	time.Sleep(2 * time.Second)
 
 	checkContainerExists := fmt.Sprintf("find /sys/fs/cgroup/devices -name %s* | wc -l", containerId)
@@ -28,7 +41,7 @@ func (n *Network) SetPrivateIp(containerId string) error {
 
 	out, err := exec.Command("/bin/sh", "-c", checkContainerExists).Output()
 	if err != nil {
-		exit("container doesnt exists", err)
+		return fmt.Errorf("container doesnt exists %s", err)
 	}
 
 	if strings.TrimSpace(string(out)) != "1" {
@@ -38,7 +51,7 @@ func (n *Network) SetPrivateIp(containerId string) error {
 
 	nspidbyte, err := exec.Command("/bin/sh", "-c", getnspid).Output()
 	if err != nil {
-		exit("failed to get nspid", err)
+		return fmt.Errorf("failed to get nspid %v", err)
 	}
 
 	nspid := strings.TrimSpace(string(nspidbyte))
@@ -98,29 +111,9 @@ func (n *Network) setPublicIp(containerId string) error {
 		n.resetPublicIp()
 		_, err := exec.Command("ip", "route", "add", "to", n.PublicIp, "via", n.PrivateIp).Output()
 		if err != nil {
-			exit("failed to set public ip config", err)
+			return fmt.Errorf("failed to set public ip config %v", err)
 		}
 
-	}
-
-	return nil
-}
-
-func (n *Network) ValidateNetwork() error {
-
-	//private ip is required
-	if n.PrivateIp == "" {
-		return fmt.Errorf("Error: Private Ip required")
-	}
-
-	//check if private ip is a valid ip
-	if net.ParseIP(n.PrivateIp) == nil {
-		return fmt.Errorf("Error: Private Ip not a valid  Addr")
-	}
-
-	//if public ip is set must be a valid ip
-	if net.ParseIP(n.PublicIp) == nil && n.PublicIp != "" {
-		return fmt.Errorf("Error: Public Ip not a valid Addr")
 	}
 
 	return nil

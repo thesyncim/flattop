@@ -4,22 +4,19 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
-	"os"
-	"os/exec"
-	"os/user"
-	"path/filepath"
-	"regexp"
+	//"os"
+	//"os/user"
+	//"path/filepath"
 )
 
 type Config struct {
-	Name string
-	Network
-	Container
+	Filename string
+	Replace  bool
 }
 
-func (c *Config) WriteToFile(filename string) {
+func (c *Config) writeToFile(data interface{}) {
 
-	b, err := json.Marshal(*c)
+	b, err := json.Marshal(data)
 	if err != nil {
 		exit("unable to Marshal Config:", err)
 	}
@@ -29,89 +26,74 @@ func (c *Config) WriteToFile(filename string) {
 		exit("unable to Indent:", err)
 	}
 
-	err = ioutil.WriteFile(filename, prettyb, 0644)
+	err = ioutil.WriteFile(c.Filename, prettyb, 0644)
 	if err != nil {
-		exit("failed to write config to:"+filename, err)
+		exit("failed to write config to:"+c.Filename, err)
 	}
 
 }
 
-func (c *Config) Save(filename string, repalce bool) {
-	if fileExists(filename) {
-		if repalce {
+func (c *Config) Save(data Container) (err error) {
+	if fileExists(c.Filename) {
+		if c.Replace {
+			//reset replace
+			c.Replace = false
 			var confirm string
-			fmt.Println("are you sure ?:yes|no")
+			fmt.Println("Do you want to continue [Y/n]?")
 			fmt.Scan(&confirm)
-			if confirm == "yes" {
-				c.writeToFile(filename)
-				info("configFile " + filename + " replaced")
+			if (confirm == "y") || (confirm == "Y") {
+				c.writeToFile(data)
+				info("configFile " + c.Filename + " replaced")
 			}
 		} else {
 			exit("already exists use -r to replace")
 		}
 
 	} else {
-		c.writeToFile(filename)
-		info("new configFile " + filename + " saved")
+		c.writeToFile(data)
+		info("new configFile " + c.Filename + " saved")
 
 	}
+	return nil
 
 }
 
-func (c *Config) Run() (containerId string) {
+func (c *Config) Load(container *Container) {
 
-	out, err := exec.Command("/bin/sh", "-c", c.buildDockerCmd(c.PublicIp)).Output()
-	if err != nil {
-		exit("failed to run ", c.buildDockerCmd(c.PublicIp), err)
-	}
+	if fileExists(configDir + c.Filename) {
 
-	var re *regexp.Regexp
-	re = regexp.MustCompile("[0-9a-fA-F]{12}")
-	containerId = re.FindString(string(out))
-	if containerId == "" {
-		exit("failed with error ", string(out))
-	}
-	c.Id = containerId
-
-	return containerId
-}
-
-func (c *Config) LoadConfigFile(filename string) {
-
-	if fileExists(filename) {
-
-		b, err := ioutil.ReadFile(filename)
+		b, err := ioutil.ReadFile(configDir + c.Filename)
 		if err != nil {
-			exit("failed to read " + filename)
+			exit("failed to read " + c.Filename)
 		}
 
-		err = json.Unmarshal(b, c)
+		err = json.Unmarshal(b, container)
 		if err != nil {
 			exit("error to Unmarshal", err)
 		}
 
 	} else {
-		exit("Error: missing configuration for " + filename)
+		exit("Error: missing configuration for " + c.Filename)
 	}
 }
 
-func (c *Config) LoadConfigFiles() error {
+//func (c *Config) LoadConfigFiles() error {
+//
+//	usr, err := user.Current()
+//	if err != nil {
+//		exit(err)
+//	}
+//
+//	configFolder := filepath.Join(usr.HomeDir, ".dockercmd")
+//	err = filepath.Walk(configFolder, visit)
+//	if err != nil {
+//		exit("failed to load config files")
+//	}
+//	return nil
+//
+//}
 
-	usr, err := user.Current()
-	if err != nil {
-		exit(err)
-	}
-
-	configFolder := filepath.Join(usr.HomeDir, ".dockercmd")
-	err = filepath.Walk(configFolder, visit)
-	if err != nil {
-		exit("failed to load config files")
-	}
-	return nil
-
-}
-
-func visit(path string, f os.FileInfo, err error) error {
-	fmt.Printf("Visited: %s\n", path)
-	return nil
-}
+//func visit(path string, f os.FileInfo, err error) error {
+//	fmt.Printf("Visited: %s\n", path)
+//	return nil
+//}

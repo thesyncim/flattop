@@ -4,9 +4,7 @@ package main
 
 import (
 	"github.com/codegangsta/cli"
-	"log"
 	"os"
-	"strings"
 )
 
 var configDir = "/dockerimages/"
@@ -17,7 +15,7 @@ func main() {
 	app.Usage = "create, run and manage docker instances"
 	app.Version = "0.0.1"
 	app.Flags = []cli.Flag{
-		cli.StringFlag{"c", configDir, "config file to create and run container"},
+		cli.StringFlag{"c", configDir, "config dir to create and run container"},
 	}
 	app.Commands = []cli.Command{
 		{
@@ -42,67 +40,37 @@ func main() {
 			},
 			Action: func(c *cli.Context) {
 
-				if len(c.Args()) < 2 {
-					exit("you must provide a app name and command to run")
-				}
-				appname := c.Args()[0]
-				containerConf := new(Config)
-				containerConf.Hostname = c.String("host")
-				containerConf.Dns = c.StringSlice("dns")
-				containerConf.Image = c.String("image")
-				containerConf.Cpu = c.String("c")
-				containerConf.Environment = c.StringSlice("e")
-				containerConf.User = c.String("u")
-				containerConf.WorkingDirectory = c.String("w")
-				containerConf.Port = c.IntSlice("p")
-				containerConf.Volumes = c.StringSlice("v")
-				containerConf.PrivateIp = c.String("privateip")
-				containerConf.PublicIp = c.String("publicip")
-				containerConf.Name = appname
-				containerConf.Command = strings.Join(c.Args()[1:], " ")
+				var container *Container
 
-				if err := containerConf.ValidateContainer(); err != nil {
+				container, err := ParseCreateContext(c)
+				if err != nil {
 					exit(err)
 				}
 
-				if err := containerConf.ValidateNetwork(); err != nil {
+				err = container.Create()
+				if err != nil {
 					exit(err)
 				}
-
-				containerConf.Save(c.GlobalString("c")+appname, c.Bool("r"))
 
 			},
 		},
 		{
-			Name:      "run",
-			ShortName: "r",
+			Name:      "start",
+			ShortName: "s",
 			Usage:     "run a container based on configfile",
 			Flags:     []cli.Flag{},
 			Action: func(c *cli.Context) {
 
-				if len(c.Args()) < 1 {
-					log.Fatal("you must provide a name for app")
-				}
+				var container *Container
 
-				appname := c.Args()[0]
-
-				containerConf := new(Config)
-
-				containerConf.LoadConfigFile(configDir + appname)
-				if err := containerConf.ValidateContainer(); err != nil {
+				container, err := ParseStartContext(c)
+				if err != nil {
 					exit(err)
 				}
-
-				if err := containerConf.ValidateNetwork(); err != nil {
+				err = container.Start()
+				if err != nil {
 					exit(err)
 				}
-
-				containerId := containerConf.Run()
-
-				containerConf.SetPrivateIp(containerId)
-				containerConf.setPublicIp(containerId)
-				containerConf.WriteToFile(c.GlobalString("c") + appname)
-				info("container ", c.Name, "started with id:", containerId)
 
 			},
 		},
