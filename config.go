@@ -5,8 +5,10 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
+	"os/exec"
 	"os/user"
 	"path/filepath"
+	"regexp"
 )
 
 type Config struct {
@@ -54,6 +56,22 @@ func (c *Config) Save(filename string, repalce bool) {
 
 	}
 
+}
+
+func (c *Config) Run() (containerId string) {
+
+	out, err := exec.Command("/bin/sh", "-c", c.buildDockerCmd(c.PublicIp)).Output()
+	if err != nil {
+		exit("failed to run ", c.buildDockerCmd(c.PublicIp), err)
+	}
+
+	var re *regexp.Regexp
+	re = regexp.MustCompile("[0-9a-fA-F]{12}")
+	containerId = re.FindString(string(out))
+	if containerId == "" {
+		exit("failed with error ", string(out))
+	}
+	return containerId
 }
 
 func (c *Config) LoadConfigFile(filename string) {

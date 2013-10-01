@@ -3,8 +3,7 @@ package main
 import (
 	"fmt"
 	"net"
-	"os/exec"
-	"regexp"
+
 	"strconv"
 )
 
@@ -58,7 +57,7 @@ func (c *Container) ValidateContainer() error {
 	return nil
 }
 
-func (c *Container) buildDockerCmd() string {
+func (c *Container) buildDockerCmd(ip string) string {
 
 	var cmd cmd
 
@@ -94,24 +93,13 @@ func (c *Container) buildDockerCmd() string {
 		}
 	}
 
-	cmd.add(c.Image, c.Command)
+	cmd.add(c.Image)
+	if ip != "" {
+		cmd.add("ip addr add dev eth0", ip+"/32", "&")
+	}
+
+	cmd.add(c.Command)
 
 	return cmd.String()
 
-}
-
-func (c *Container) Run() (containerId string) {
-
-	out, err := exec.Command("/bin/sh", "-c", c.buildDockerCmd()).Output()
-	if err != nil {
-		exit("failed to run ", c.buildDockerCmd(), err)
-	}
-
-	var re *regexp.Regexp
-	re = regexp.MustCompile("[0-9a-fA-F]{12}")
-	containerId = re.FindString(string(out))
-	if containerId == "" {
-		exit("failed with error ", string(out))
-	}
-	return containerId
 }
