@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"os/exec"
 	"strings"
-	//"time"
+	"time"
 )
 
 type Network struct {
@@ -34,7 +34,7 @@ func (n *Network) resetPublicIp() (err error) {
 func (n *Network) setPrivateIp(containerId string) error {
 
 	//todo replace exit by fmt.Errorf
-	//	time.Sleep(2 * time.Second)
+	time.Sleep(2 * time.Second)
 
 	checkContainerExists := fmt.Sprintf("find /sys/fs/cgroup/devices -name %s* | wc -l", containerId)
 	out, err := exec.Command("/bin/sh", "-c", checkContainerExists).Output()

@@ -8,6 +8,7 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
+	"time"
 )
 
 type Container struct {
@@ -18,17 +19,24 @@ type Container struct {
 	Entrypoint       string
 	Cpu              string
 	Image            string
-	VolumesFrom      string
 	User             string
 	RunArgs          string
+	VolumesFrom      []string
 	Volumes          []string
 	Dns              []string
 	Environment      []string
-	Port             []int
 	Memory           int
+	Port             []int
 	Privileged       bool
 	Network          *Network
 	Config           *Config
+}
+
+func ParseReloadContext(c *cli.Context) (container *Container, err error) {
+	if len(c.Args()) < 1 {
+		return nil, fmt.Errorf("Error: no app name provided")
+	}
+
 }
 
 func ParseStartContext(c *cli.Context) (container *Container, err error) {
@@ -107,6 +115,8 @@ func ParseCreateContext(c *cli.Context) (container *Container, err error) {
 	container.WorkingDirectory = c.String("w")
 	container.Port = c.IntSlice("p")
 	container.Volumes = c.StringSlice("v")
+	container.Entrypoint = c.String("entrypoint")
+	container.VolumesFrom = c.StringSlice("-volumes-from")
 	container.Network = &Network{}
 	container.Network.PublicIp = c.String("publicip")
 	container.Network.PrivateIp = c.String("privateip")
@@ -114,11 +124,11 @@ func ParseCreateContext(c *cli.Context) (container *Container, err error) {
 	container.Config.Filename = configDir + appname
 	container.Config.Replace = c.Bool("r")
 	container.RunArgs = strings.Join(c.Args()[1:], " ")
+
 	return container, nil
 }
 
 func (c *Container) buildCmd() *exec.Cmd {
-	//todo cpu|user|Environment....
 
 	var cmd cmd
 
@@ -126,12 +136,38 @@ func (c *Container) buildCmd() *exec.Cmd {
 
 	if c.Memory != 0 {
 		cmd.add("-m", string(c.Memory))
+	}
 
+	if c.WorkingDirectory != "" {
+		cmd.add("-w", c.WorkingDirectory)
+	}
+
+	if c.Entrypoint != "" {
+		cmd.add("-entrypoint", c.Entrypoint)
+	}
+
+	if c.Cpu != "" {
+		cmd.add("-c", c.Cpu)
+	}
+
+	if c.User != "" {
+		cmd.add("-u", c.User)
 	}
 
 	if c.Privileged {
 		cmd.add("-privileged")
+	}
 
+	if len(c.Volumes) > 0 {
+		for _, volumes := range c.Volumes {
+			cmd.add("-v", volumes)
+		}
+	}
+
+	if len(c.Environment) > 0 {
+		for _, env := range c.Environment {
+			cmd.add("-e", env)
+		}
 	}
 
 	if len(c.Port) > 0 {
@@ -143,14 +179,12 @@ func (c *Container) buildCmd() *exec.Cmd {
 	if len(c.Dns) > 0 {
 		for _, dns := range c.Dns {
 			cmd.add("-dns", dns)
-
 		}
 	}
 
 	if len(c.Volumes) > 0 {
 		for _, volumes := range c.Volumes {
 			cmd.add("-v", volumes)
-
 		}
 	}
 
@@ -167,16 +201,33 @@ func (c *Container) buildCmd() *exec.Cmd {
 
 func (c *Container) Start() (err error) {
 
+	if c.isStarted() {
+		output, err := exec.Command("docker", "start", c.Id).Output()
+		if err != nil {
+			if strings.Contains(err.Error(), "exit status 1") {
+				return fmt.Errorf("container %s already started", c.Id)
+			}
+			return fmt.Errorf("failed to start container: %v", err)
+		}
+
+		err = c.Network.AllocateNetwork(c.Id)
+		if err != nil {
+			return fmt.Errorf("failed to allocate network: %v", err)
+
+		}
+
+		if strings.Contains(string(output), c.Id) {
+			info("started container " + c.Id)
+		}
+		return nil
+	}
+
 	output, err := c.buildCmd().Output()
 	if err != nil {
 		return fmt.Errorf("Error: error executing docker run comand %v ", err)
 	}
 
-	var re *regexp.Regexp
-	var matchContanerId = "[0-9a-fA-F]{12}"
-
-	re = regexp.MustCompile(matchContanerId)
-	cid := re.FindString(string(output))
+	cid := c.matchContainerId(output)	
 
 	if cid == "" {
 		return fmt.Errorf("Error: no container Id provided by docker : %v", err)
@@ -195,8 +246,17 @@ func (c *Container) Start() (err error) {
 		return err
 
 	}
+	info("container started with id " + c.Id)
 	return nil
+}
 
+func (c *Container) Backup() {
+	output,err
+
+}
+
+func (c *Container) () {
+	
 }
 
 //maybe move to config
@@ -208,3 +268,24 @@ func (c *Container) Create() (err error) {
 	}
 	return nil
 }
+
+func (c *Container) isStarted() bool {
+
+	if c.Id != "" {
+		return false
+	}
+
+	return true
+}
+func (c *Container) commitContainer() (err error){
+	now:=time.Now()
+	tag:= now.Year()+now.Month()+now.Day()
+	output,err:=exec.Command("docker", "commit", c.Id, c.Image, tag).Output()
+}
+
+func (c *Container) matchContainerId(output []byte) (cid string) {
+	regex := regexp.MustCompile("[0-9a-fA-F]{12}")
+	cid = regex.FindString(string(output))
+	return cid
+}
+

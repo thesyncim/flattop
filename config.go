@@ -34,12 +34,8 @@ func (c *Config) writeToFile(data interface{}) {
 }
 
 func (c *Config) Update(data Container) (err error) {
-
 	c.writeToFile(data)
-	info("new configFile " + c.Filename + " saved")
-
 	return nil
-
 }
 
 func (c *Config) Save(data Container) (err error) {
