@@ -33,6 +33,15 @@ func (c *Config) writeToFile(data interface{}) {
 
 }
 
+func (c *Config) Update(data Container) (err error) {
+
+	c.writeToFile(data)
+	info("new configFile " + c.Filename + " saved")
+
+	return nil
+
+}
+
 func (c *Config) Save(data Container) (err error) {
 	if fileExists(c.Filename) {
 		if c.Replace {
@@ -61,7 +70,6 @@ func (c *Config) Save(data Container) (err error) {
 func (c *Config) Load(container *Container) {
 
 	if fileExists(configDir + c.Filename) {
-
 		b, err := ioutil.ReadFile(configDir + c.Filename)
 		if err != nil {
 			exit("failed to read " + c.Filename)

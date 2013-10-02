@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"os/exec"
 	"strings"
-	"time"
+	//"time"
 )
 
 type Network struct {
@@ -34,11 +34,9 @@ func (n *Network) resetPublicIp() (err error) {
 func (n *Network) setPrivateIp(containerId string) error {
 
 	//todo replace exit by fmt.Errorf
-	time.Sleep(2 * time.Second)
+	//	time.Sleep(2 * time.Second)
 
 	checkContainerExists := fmt.Sprintf("find /sys/fs/cgroup/devices -name %s* | wc -l", containerId)
-	getnspid := fmt.Sprintf("head -n 1 $(find /sys/fs/cgroup/devices -name %s* | head -n 1)/tasks", containerId)
-
 	out, err := exec.Command("/bin/sh", "-c", checkContainerExists).Output()
 	if err != nil {
 		return fmt.Errorf("container doesnt exists %s", err)
@@ -46,9 +44,10 @@ func (n *Network) setPrivateIp(containerId string) error {
 
 	if strings.TrimSpace(string(out)) != "1" {
 
-		exit(string(out), "container "+containerId+" doesnt exist")
+		return fmt.Errorf(string(out), "container "+containerId+" doesnt exist")
 	}
 
+	getnspid := fmt.Sprintf("head -n 1 $(find /sys/fs/cgroup/devices -name %s* | head -n 1)/tasks", containerId)
 	nspidbyte, err := exec.Command("/bin/sh", "-c", getnspid).Output()
 	if err != nil {
 		return fmt.Errorf("failed to get nspid %v", err)
@@ -59,47 +58,47 @@ func (n *Network) setPrivateIp(containerId string) error {
 	guest_ifname := "vethg" + nspid
 
 	if nspid == "" {
-		exit("no network  " + containerId + " ")
+		return fmt.Errorf("no network nspid " + containerId + " ")
 	}
 
 	if _, err := exec.Command("/bin/sh", "-c", "mkdir -p /var/run/netns").Output(); err != nil {
-		exit("failed to create /var/run/netns", err)
+		return err
 	}
 
 	if _, err := exec.Command("/bin/sh", "-c", fmt.Sprintf("rm -f /var/run/netns/%s", nspid)).Output(); err != nil {
-		exit("failed to remove /var/run/netns"+string(nspid), err)
+		return err
 	}
 
 	if _, err := exec.Command("/bin/sh", "-c", fmt.Sprintf("ln -s /proc/%s/ns/net /var/run/netns/%s", nspid, nspid)).Output(); err != nil {
-		exit("a", err)
+		return err
 	}
 
 	if _, err := exec.Command("/bin/sh", "-c", fmt.Sprintf("ip link add name %s type veth peer name %s", local_ifname, guest_ifname)).Output(); err != nil {
-		exit("b", err)
+		return err
 	}
 
 	if _, err := exec.Command("/bin/sh", "-c", fmt.Sprintf("ip link set %s master docker0", local_ifname)).Output(); err != nil {
-		exit("c", err)
+		return err
 	}
 
 	if _, err := exec.Command("/bin/sh", "-c", fmt.Sprintf("ip link set %s up", local_ifname)).Output(); err != nil {
-		exit("d", err)
+		return err
 	}
 
 	if _, err := exec.Command("/bin/sh", "-c", fmt.Sprintf("ip link set %s netns %s", guest_ifname, nspid)).Output(); err != nil {
-		exit("e", err)
+		return err
 	}
 
 	if _, err := exec.Command("/bin/sh", "-c", fmt.Sprintf("ip netns exec %s ip link set %s name eth1", nspid, guest_ifname)).Output(); err != nil {
-		exit("f", err)
+		return err
 	}
 
 	if _, err := exec.Command("/bin/sh", "-c", fmt.Sprintf("ip netns exec %s ip addr add %s dev eth1", nspid, n.PrivateIp)).Output(); err != nil {
-		exit("g", err)
+		return err
 	}
 
 	if _, err := exec.Command("/bin/sh", "-c", fmt.Sprintf("ip netns exec %s ip link set eth1 up", nspid)).Output(); err != nil {
-		exit("h", err)
+		return err
 	}
 
 	return nil

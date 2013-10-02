@@ -190,7 +190,7 @@ func (c *Container) Start() (err error) {
 	}
 	c.Id = cid
 
-	err = c.Config.Save(*c)
+	err = c.Config.Update(*c)
 	if err != nil {
 		return err
 
