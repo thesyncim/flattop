@@ -67,6 +67,27 @@ func ParseCreateContext(c *cli.Context) (container *Container, err error) {
 		return nil, fmt.Errorf("Error: Image Required")
 
 	}
+	
+	//private ip is required
+	if c.String("privateip") == "" {
+		return nil, fmt.Errorf("Error: Private Ip required")
+	}
+	
+	//todo check if folder exists
+	if c.GlobalString("c") != "" {
+		configDir = c.GlobalString("c")
+	}
+
+	//check if private ip is a valid ip
+	if net.ParseIP(c.String("privateip")) == nil {
+		return nil, fmt.Errorf("Error: Private Ip not a valid  Addr")
+	}
+
+	//if public ip is set must be a valid ip
+	if net.ParseIP(c.String("publicip")) == nil && c.String("publicip") != "" {
+		return nil, fmt.Errorf("Error: Public Ip not a valid Addr")
+	}
+	
 	//if we set dns servers we must verify if are valid ip addr
 	if len(c.StringSlice("dns")) > 0 {
 		for _, dns := range c.StringSlice("dns") {
@@ -84,25 +105,7 @@ func ParseCreateContext(c *cli.Context) (container *Container, err error) {
 			}
 		}
 	}
-
-	//private ip is required
-	if c.String("privateip") == "" {
-		return nil, fmt.Errorf("Error: Private Ip required")
-	}
-
-	//check if private ip is a valid ip
-	if net.ParseIP(c.String("privateip")) == nil {
-		return nil, fmt.Errorf("Error: Private Ip not a valid  Addr")
-	}
-
-	//if public ip is set must be a valid ip
-	if net.ParseIP(c.String("publicip")) == nil && c.String("publicip") != "" {
-		return nil, fmt.Errorf("Error: Public Ip not a valid Addr")
-	}
-	//todo check if folder exists
-	if c.GlobalString("c") != "" {
-		configDir = c.GlobalString("c")
-	}
+	
 
 	appname := c.Args()[0]
 	container = &Container{}
