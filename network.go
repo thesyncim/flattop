@@ -48,6 +48,7 @@ func (n *Network) setPrivateIp(containerId string) error {
 	}
 
 	getnspid := fmt.Sprintf("head -n 1 $(find /sys/fs/cgroup/devices -name %s* | head -n 1)/tasks", containerId)
+	
 	nspidbyte, err := exec.Command("/bin/sh", "-c", getnspid).Output()
 	if err != nil {
 		return fmt.Errorf("failed to get nspid %v", err)

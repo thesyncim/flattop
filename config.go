@@ -14,27 +14,35 @@ type Config struct {
 	Replace  bool
 }
 
-func (c *Config) writeToFile(data interface{}) {
+func (c *Config) writeToFile(data interface{}) error {
 
 	b, err := json.Marshal(data)
 	if err != nil {
-		exit("unable to Marshal Config:", err)
+
+		return fmt.Errorf("unable to Marshal Config: %v", err)
 	}
 
 	prettyb, err := Pretty(b)
 	if err != nil {
-		exit("unable to Indent:", err)
+
+		return fmt.Errorf("unable to Indent: %v", err)
 	}
 
 	err = ioutil.WriteFile(c.Filename, prettyb, 0644)
 	if err != nil {
-		exit("failed to write config to:"+c.Filename, err)
+
+		return fmt.Errorf("failed to write config to %s : %v", c.Filename, err)
 	}
+
+	return nil
 
 }
 
 func (c *Config) Update(data Container) (err error) {
-	c.writeToFile(data)
+	err = c.writeToFile(data)
+	if err != nil {
+		return err
+	}
 	return nil
 }
 
@@ -47,7 +55,11 @@ func (c *Config) Save(data Container) (err error) {
 			fmt.Println("Do you want to continue [Y/n]?")
 			fmt.Scan(&confirm)
 			if (confirm == "y") || (confirm == "Y") {
-				c.writeToFile(data)
+				err = c.writeToFile(data)
+				if err != nil {
+					return err
+				}
+
 				info("configFile " + c.Filename + " replaced")
 			}
 		} else {
@@ -55,7 +67,10 @@ func (c *Config) Save(data Container) (err error) {
 		}
 
 	} else {
-		c.writeToFile(data)
+		err = c.writeToFile(data)
+		if err != nil {
+			return err
+		}
 		info("new configFile " + c.Filename + " saved")
 
 	}

@@ -36,7 +36,7 @@ func ParseReloadContext(c *cli.Context) (container *Container, err error) {
 	if len(c.Args()) < 1 {
 		return nil, fmt.Errorf("Error: no app name provided")
 	}
-
+	return nil, nil
 }
 
 func ParseStartContext(c *cli.Context) (container *Container, err error) {
@@ -202,6 +202,11 @@ func (c *Container) buildCmd() *exec.Cmd {
 
 }
 
+func (c *Container) Backup() (err error) {
+
+	return err
+}
+
 func (c *Container) Start() (err error) {
 
 	if c.isStarted() {
@@ -230,7 +235,7 @@ func (c *Container) Start() (err error) {
 		return fmt.Errorf("Error: error executing docker run comand %v ", err)
 	}
 
-	cid := c.matchContainerId(output)	
+	cid := c.matchContainerId(output)
 
 	if cid == "" {
 		return fmt.Errorf("Error: no container Id provided by docker : %v", err)
@@ -253,15 +258,6 @@ func (c *Container) Start() (err error) {
 	return nil
 }
 
-func (c *Container) Backup() {
-	output,err
-
-}
-
-func (c *Container) () {
-	
-}
-
 //maybe move to config
 func (c *Container) Create() (err error) {
 
@@ -280,15 +276,19 @@ func (c *Container) isStarted() bool {
 
 	return true
 }
-func (c *Container) commitContainer() (err error){
-	now:=time.Now()
-	tag:= now.Year()+now.Month()+now.Day()
-	output,err:=exec.Command("docker", "commit", c.Id, c.Image, tag).Output()
+func (c *Container) commitContainer() (err error) {
+
+	now := time.Now()
+	tag := string(now.Year()) + now.Month().String() + string(now.Day())
+	output, err := exec.Command("docker", "commit", c.Id, c.Image, tag).Output()
+	if c.matchContainerId(output) == "" {
+		return fmt.Errorf("Error: unable to commit container")
+	}
+
+	return nil
 }
 
-func (c *Container) matchContainerId(output []byte) (cid string) {
+func (c *Container) matchContainerId(output []byte) string {
 	regex := regexp.MustCompile("[0-9a-fA-F]{12}")
-	cid = regex.FindString(string(output))
-	return cid
+	return regex.FindString(string(output))
 }
-
